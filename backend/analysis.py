@@ -117,7 +117,7 @@ class AnalysisService:
             data=json.loads(re.sub(r'^\x60\x60\x60(?:json)?\s*|\s*\x60\x60\x60$','',text.strip()))
             if not isinstance(data,dict) or not isinstance(data.get('events'),list) or not isinstance(data.get('relationships'),list):raise ValueError()
         except (ValueError,TypeError):raise ValueError('模型结果格式不完整，请重新分析；不会显示未验证的类目统计。')
-        messages={m['ref']:{**m,'conversation':c['conversation'],'conversation_id':c['conversation_id']} for c in context['conversations'] for m in c['messages']}
+        messages={m['ref']:{**m,'conversation':c['conversation'],'conversation_id':c['conversation_id'],'chat_id':c.get('chat_id')} for c in context['conversations'] for m in c['messages']}
         conversations={c['conversation_id']:c for c in context['conversations']}
         events=[];relationships=[];seen=set();discarded=0
         def evidence(row,cid=None):

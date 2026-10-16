@@ -21,7 +21,7 @@ function renderPeople(){
   const line=text('div','','contact-row'),avatar=text('span',Array.from(row.name)[0]||'聊','contact-avatar'),name=text('div','','contact-name'),heading=text('div',row.name,'contact-title');
   const relation=report?.relationships.find(r=>r.chat_id? r.chat_id===row.chat_id:r.name===row.name&&activity.private.filter(x=>x.name===r.name).length===1);
   if(relation){const tag=document.createElement('details');tag.className='relation-tag';tag.append(text('summary',relation.label+' · 推测'));const more=text('div','','relation-pop');more.append(text('p',relation.reason+'（置信程度：'+relation.confidence+'）'),evidence(relation.evidence));tag.append(more);heading.append(tag);}
-  name.append(heading,text('small','双方 '+row.total+' 条 · 我发 '+(row.mine??'未知')+' 条'));line.append(avatar,name);$('people').append(line);const accountId=loaded.account_id;api('/api/avatar',{account_id:accountId,chat_id:row.chat_id}).then(r=>{if(!r.image||!avatar.isConnected||loaded?.account_id!==accountId)return;const img=document.createElement('img');img.src=r.image;img.alt='';img.onerror=()=>{avatar.textContent=Array.from(row.name)[0]||'聊';};avatar.replaceChildren(img);}).catch(()=>{});
+  const link=document.createElement('a');link.href='/contact?account='+encodeURIComponent(loaded.account_id)+'&chat='+encodeURIComponent(row.chat_id);link.textContent='查看联系人';name.append(link);name.append(heading,text('small','双方 '+row.total+' 条 · 我发 '+(row.mine??'未知')+' 条'));line.append(avatar,name);$('people').append(line);const accountId=loaded.account_id;api('/api/avatar',{account_id:accountId,chat_id:row.chat_id}).then(r=>{if(!r.image||!avatar.isConnected||loaded?.account_id!==accountId)return;const img=document.createElement('img');img.src=r.image;img.alt='';img.onerror=()=>{avatar.textContent=Array.from(row.name)[0]||'聊';};avatar.replaceChildren(img);}).catch(()=>{});
  }
  if(!rows.length)$('people').append(text('p','这段时间没有已读取的私聊。','small'));
 }
@@ -93,10 +93,10 @@ function render(){
  const todos=report.events.filter(active),others=report.events.filter(e=>!active(e));
  $('event-total').textContent=todos.length+' 项待跟进';
  $('todos').replaceChildren();
- for(const e of todos){const c=text('article','','todo-card'),meta=text('p',[e.owner!=='待确认'?'负责人：'+e.owner:'负责人待确认',e.due!=='待确认'?e.due:'时间待确认'].join(' · '),'todo-meta'),details=document.createElement('details');details.append(text('summary','详情与依据'),text('p',e.detail),evidence(e.evidence));c.append(text('span',e.status,'todo-status'),text('h3',e.title),meta,details);$('todos').append(c);}
+ for(const e of todos){const c=text('article','','todo-card'),meta=text('p',[e.owner!=='待确认'?'负责人：'+e.owner:'负责人待确认',e.due!=='待确认'?e.due:'时间待确认'].join(' · '),'todo-meta'),details=document.createElement('details');details.append(text('summary','详情与依据'),text('p',e.detail),evidence(e.evidence));c.append(text('span',e.status,'todo-status'),text('h3',e.title),meta,details,Workflow.button(loaded.account_id,report,e));$('todos').append(c);}
  if(!todos.length)$('todos').append(text('p','本次材料中未提取到待跟进事项。','analysis-empty'));
  $('events').replaceChildren();
- for(const e of others){const row=text('article','','brief-event');row.append(text('span',e.category+' · '+e.status,'small'),text('h3',e.title),text('p',e.detail.length>100?e.detail.slice(0,100)+'…':e.detail));const d=document.createElement('details');d.append(text('summary','查看详情'),text('p',e.detail),evidence(e.evidence));row.append(d);$('events').append(row);}
+ for(const e of others){const row=text('article','','brief-event');row.append(text('span',e.category+' · '+e.status,'small'),text('h3',e.title),text('p',e.detail.length>100?e.detail.slice(0,100)+'…':e.detail));const d=document.createElement('details');d.append(text('summary','查看详情'),text('p',e.detail),evidence(e.evidence));row.append(d,Workflow.button(loaded.account_id,report,e));$('events').append(row);}
  if(!others.length)$('events').append(text('p','暂无其他重要动态。','small'));
  $('categories').replaceChildren(...categories.map(c=>text('span',c+' '+report.counts[c],'count-chip')));
  $('report-coverage').textContent=report.start+' 至 '+report.end+' · 快照 '+stamp(report.snapshot_at)+(report.partial?' · 部分材料分析，不代表全部事项':'')+(report.discarded?' · 已剔除 '+report.discarded+' 项无有效依据的结果':'');

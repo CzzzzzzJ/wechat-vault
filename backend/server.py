@@ -12,6 +12,7 @@ from .analysis import AnalysisService
 from .avatar import AvatarReader
 from .profile import ProfileService
 from .search import SearchService
+from .workflow import WorkflowService
 WEB=Path(__file__).resolve().parents[1]/'web'
 
 def make_handler(monitor,codex,port,token,ingest=None):
@@ -20,6 +21,7 @@ def make_handler(monitor,codex,port,token,ingest=None):
     agent=AgentBridge(monitor,activity,chats,codex)
     analysis=AnalysisService(monitor,activity,chats,codex)
     search=SearchService(monitor,codex)
+    workflow=WorkflowService(monitor,analysis,search)
     avatars=AvatarReader(monitor)
     profiles=ProfileService(monitor,activity,avatars)
     allowed_hosts={f'127.0.0.1:{port}',f'localhost:{port}'}
@@ -55,7 +57,7 @@ def make_handler(monitor,codex,port,token,ingest=None):
                         jid=path.rsplit('/',1)[1];return self.reply(200,codex.get(jid))
                 except KeyError:return self.reply(404,{'error':'任务不存在。'})
                 return self.reply(404,{'error':'Not found'})
-            files={'/brief':'brief.html','/search':'search.html','/insights.js':'insights.js','/insights.css':'insights.css','/':'index.html','/app.js':'app.js','/style.css':'style.css','/activity.js':'activity.js','/chat.js':'chat.js','/analysis':'analysis.html','/analysis.js':'analysis.js','/analysis.css':'analysis.css','/profile.js':'profile.js','/assets/codex.png':'assets/codex.png'}
+            files={'/tasks':'tasks.html','/contact':'tasks.html','/workflow.js':'workflow.js','/tasks.js':'tasks.js','/brief':'brief.html','/search':'search.html','/insights.js':'insights.js','/insights.css':'insights.css','/':'index.html','/app.js':'app.js','/style.css':'style.css','/activity.js':'activity.js','/chat.js':'chat.js','/analysis':'analysis.html','/analysis.js':'analysis.js','/analysis.css':'analysis.css','/profile.js':'profile.js','/assets/codex.png':'assets/codex.png'}
             if path not in files:return self.reply(404,{'error':'Not found'})
             file=WEB/files[path]
             return self.reply(200,file.read_bytes(),(mimetypes.guess_type(file)[0] or 'application/octet-stream')+'; charset=utf-8')
@@ -72,6 +74,11 @@ def make_handler(monitor,codex,port,token,ingest=None):
                 if path=='/api/ingest/cancel' and ingest:return self.reply(200,ingest.cancel(body.get('account_id')))
                 if path=='/api/ingest/repair' and ingest:return self.reply(202,ingest.repair(body.get('account_id'),body.get('consent')))
                 if path=='/api/ingest' and ingest:return self.reply(202,ingest.start(body.get('account_id')))
+                if path=='/api/workflow/list':return self.reply(200,workflow.list(body.get('account_id')))
+                if path=='/api/workflow/import':return self.reply(200,workflow.import_event(body.get('account_id'),body.get('start'),body.get('end'),body.get('index'),body.get('title'),body.get('target')))
+                if path=='/api/workflow/update':return self.reply(200,workflow.update(body.get('account_id'),body.get('id'),body.get('version'),body.get('status'),body.get('due'),body.get('owner'),body.get('note')))
+                if path=='/api/workflow/contacts':return self.reply(200,{'contacts':workflow.contacts(body.get('account_id'))})
+                if path=='/api/workflow/contact':return self.reply(200,workflow.contact(body.get('account_id'),body.get('chat_id')))
                 if path=='/api/search':
                     return self.reply(200,search.start(body.get('account_id'),body.get('query'),body.get('start'),body.get('end'),body.get('semantic',True)))
                 if path=='/api/search/result':

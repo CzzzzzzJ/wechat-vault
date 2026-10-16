@@ -68,3 +68,15 @@ Agent 流程：POST /api/agent/plan 仅把用户问题与当前/所选日期交�
 `/brief` 复用 analysis.py 的范围准备、结果验证和持久缓存，不维护第二套事件推理。`/search` 由 search.py 管理账号绑定、快照版本、私有 SQLite 文本索引及检索。`insights.js` 负责两个页面的交互。
 
 POST `/api/search` 接收 account_id/query/start/end/semantic。语义模式先创建 Codex 扩词任务，再通过 POST `/api/search/result`（account_id/job_id）获取检索结果；原词模式直接返回。索引按账号隔离，新快照重建，重建失败保留原文件并返回错误。最多展示 50 条命中，搜索范围不限于分析页的会话排名。当前语义任务与结果在服务内存保存，离开页面后需要重新发起或继续轮询；文本索引持久化。
+
+## 跟进工作流
+
+`workflow.py` 管理用户确认的事项（items）及追加式进展（entries），独立于 AI 报告缓存。导入接口仅接收报告范围、事件序号及标题，重新读取服务端报告，不能由客户端提交任意原文。重复内容使用账号级摘要去重；状态更新采用版本比较和 SQLite 事务，防止旧页面覆盖新修改。
+
+- POST `/api/workflow/list`：account_id，返回事项、进展及关联会话。
+- POST `/api/workflow/import`：account_id/start/end/index/title，可选 target 追加到已有事项。
+- POST `/api/workflow/update`：account_id/id/version/status/due/owner/note，更新并记录变更。
+- POST `/api/workflow/contacts`：account_id，列出当前快照联系人。
+- POST `/api/workflow/contact`：account_id/chat_id，读取关联事项及最近可见 30 天统计。
+
+新分析引用携带 chat_id；旧报告只允许唯一名称回退。事项中的原文依据在保存时复制，报告被归档后仍可核对。所有接口复用本地会话、同源及 CSRF 校验。前端入口为 tasks.html/tasks.js，workflow.js 提供报告卡片的保存与关联弹窗。
